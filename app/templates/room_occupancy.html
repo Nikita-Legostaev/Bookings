@@ -1,0 +1,274 @@
+{% extends "base.html" %}
+{% block content %}
+<div style="margin: 15px;">
+    <h2>Список занятости комнат</h2>
+    
+    <!-- Панель управления для выбора диапазона -->
+    <div style="margin-bottom: 10px;">
+        <label>Показать с:</label>
+        <input type="number" id="offset" value="0" min="0" style="width: 80px; margin-right: 10px;">
+        <label>Количество на странице:</label>
+        <input type="number" id="limit" value="10" min="1" style="width: 80px; margin-right: 15px;">
+        <button onclick="loadRoomOccupancy()" 
+                style="padding: 5px 15px; background-color: blue; color: pink; border: none; cursor: pointer; border-radius: 10px;">
+            Применить
+        </button>
+    </div>
+
+    <!-- Кнопка для добавления нового занятия комнаты -->
+    <button 
+        onclick="openAddModal()" 
+        style="margin-bottom: 15px; padding: 10px 15px; background-color: blue; color: pink; border: none; cursor: pointer;border-radius: 10px;">
+        Добавить занятость
+    </button>
+
+    <!-- Таблица занятости комнат -->
+    <table id="roomOccupancyTable" style="width: 100%; border-collapse: collapse; text-align: left; font-family: Arial, sans-serif;">
+        <thead>
+            <tr style="background-color: #f4f4f4; border-bottom: 2px solid #ddd;">
+                <th style="padding: 10px; border: 1px solid #ddd;">ID Сотрудника</th>
+                <th style="padding: 10px; border: 1px solid #ddd;">ID Комнаты</th>
+                <th style="padding: 10px; border: 1px solid #ddd;">Дата начала</th>
+                <th style="padding: 10px; border: 1px solid #ddd;">Дата окончания</th>
+                <th style="padding: 10px; border: 1px solid #ddd; text-align: center;">Действия</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Здесь будет отображаться список занятости комнат -->
+        </tbody>
+    </table>
+
+    <!-- Модальное окно для добавления нового занятия -->
+    <div id="addModal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: pink; padding: 15px; border: 1px solid #ddd; box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);">
+        <h3>Добавить занятость комнаты</h3>
+        <form id="addForm">
+            <label>ID Сотрудника:</label>
+            <input type="number" id="addStaffId" style="width: 100%; margin-bottom: 10px;">
+            <label>ID Комнаты:</label>
+            <input type="number" id="addRoomId" style="width: 100%; margin-bottom: 10px;">
+            <label>Дата начала:</label>
+            <input type="date" id="addStartDate" style="width: 100%; margin-bottom: 10px;">
+            <label>Дата окончания:</label>
+            <input type="date" id="addEndDate" style="width: 100%; margin-bottom: 15px;">
+            <button type="button" onclick="addRoomOccupancy()" style="padding: 10px 15px; background-color: blue; color: pink; border: none; cursor: pointer;">Сохранить</button>
+            <button type="button" onclick="closeAddModal()" style="padding: 10px 15px; margin-left: 10px; background-color: #f44336; color: pink; border: none; cursor: pointer;">Отмена</button>
+        </form>
+    </div>
+
+    <!-- Модальное окно для редактирования данных -->
+    <div id="editModal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: pink; padding: 15px; border: 1px solid #ddd; box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);">
+        <h3>Изменить данные занятия</h3>
+        <form id="editForm">
+            <input type="hidden" id="editRoomOccupancyId">
+            <label>ID Сотрудника:</label>
+            <input type="number" id="editStaffId" style="width: 100%; margin-bottom: 10px;">
+            <label>ID Комнаты:</label>
+            <input type="number" id="editRoomId" style="width: 100%; margin-bottom: 10px;">
+            <label>Дата начала:</label>
+            <input type="date" id="editStartDate" style="width: 100%; margin-bottom: 10px;">
+            <label>Дата окончания:</label>
+            <input type="date" id="editEndDate" style="width: 100%; margin-bottom: 15px;">
+            <button type="button" onclick="updateRoomOccupancy()" style="padding: 10px 15px; background-color: blue; color: pink; border: none; cursor: pointer;">Сохранить</button>
+            <button type="button" onclick="closeEditModal()" style="padding: 10px 15px; margin-left: 10px; background-color: #f44336; color: pink; border: none; cursor: pointer;">Отмена</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Функция для загрузки занятости комнат
+    async function loadRoomOccupancy() {
+        const offset = document.getElementById('offset').value;
+        const limit = document.getElementById('limit').value;
+        
+        try {
+            const response = await fetch(`/room_occupancy/all?offset=${offset}&limit=${limit}`);
+            const roomOccupancy = await response.json();
+            const tableBody = document.querySelector('#roomOccupancyTable tbody');
+            tableBody.innerHTML = ''; // Очистить текущую таблицу
+
+            if (roomOccupancy.length > 0) {
+                roomOccupancy.forEach(item => {
+                    const row = document.createElement('tr');
+                    row.id = `room-occupancy-row-${item.id}`;
+                    row.innerHTML = `
+                        <td style="padding: 10px; border: 1px solid #ddd;">${item.staff_id}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd;">${item.room_id}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd;">${item.start_date}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd;">${item.end_date}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">
+                            <button 
+                                style="margin-right: 5px; padding: 5px 10px; background-color: blue; color: pink; border: none; cursor: pointer;" 
+                                onclick="openEditModal('${item.id}', '${item.staff_id}', '${item.room_id}', '${item.start_date}', '${item.end_date}')">
+                                Изменить
+                            </button>
+                            <button 
+                                style="padding: 5px 10px; background-color: #f44336; color: pink; border: none; cursor: pointer;" 
+                                onclick="deleteRoomOccupancy('${item.id}')">
+                                Удалить
+                            </button>
+                        </td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            } else {
+                const row = document.createElement('tr');
+                row.innerHTML = `<td colspan="5" style="padding: 10px; text-align: center; color: #666;">Нет данных для отображения</td>`;
+                tableBody.appendChild(row);
+            }
+        } catch (error) {
+            console.error('Ошибка загрузки занятости комнат:', error);
+            alert('Ошибка при загрузке данных');
+        }
+    }
+
+    // Вызов загрузки при старте страницы
+    window.onload = loadRoomOccupancy;
+
+    // Функции для добавления занятия комнаты
+    function openAddModal() {
+        document.getElementById('addModal').style.display = 'block';
+    }
+
+    function closeAddModal() {
+        document.getElementById('addModal').style.display = 'none';
+    }
+
+    async function addRoomOccupancy() {
+        const staffId = document.getElementById('addStaffId').value;
+        const roomId = document.getElementById('addRoomId').value;
+        const startDate = document.getElementById('addStartDate').value;
+        const endDate = document.getElementById('addEndDate').value;
+
+        if (!staffId || !roomId || !startDate || !endDate) {
+        alert('Все поля должны быть заполнены!');
+        return;
+    }
+
+    // Проверка на правильность формата даты начала
+    const startDateObj = new Date(startDate);
+    if (isNaN(startDateObj.getTime())) {
+        alert('Неверный формат даты начала!');
+        return;
+    }
+
+    // Проверка на правильность формата даты окончания
+    const endDateObj = new Date(endDate);
+    if (isNaN(endDateObj.getTime())) {
+        alert('Неверный формат даты окончания!');
+        return;
+    }
+
+    // Проверка, что дата окончания позже даты начала
+    if (endDateObj <= startDateObj) {
+        alert('Дата окончания должна быть позже даты начала!');
+        return;
+    }
+
+        try {
+            const response = await fetch('/room_occupancy/add_room_occupancy', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ staff_id: staffId, room_id: roomId, start_date: startDate, end_date: endDate })
+            });
+            const result = await response.json();
+            
+                alert('Занятость добавлена успешно');
+                loadRoomOccupancy();
+                closeAddModal();
+            
+        } catch (error) {
+            console.error('Ошибка при добавлении занятия:', error);
+            alert('Ошибка при добавлении занятия');
+        }
+    }
+
+    // Функции для редактирования занятия комнаты
+    function openEditModal(id, staffId, roomId, startDate, endDate) {
+        document.getElementById('editRoomOccupancyId').value = id;
+        document.getElementById('editStaffId').value = staffId;
+        document.getElementById('editRoomId').value = roomId;
+        document.getElementById('editStartDate').value = startDate;
+        document.getElementById('editEndDate').value = endDate;
+
+        document.getElementById('editModal').style.display = 'block';
+    }
+
+    function closeEditModal() {
+        document.getElementById('editModal').style.display = 'none';
+    }
+
+    async function updateRoomOccupancy() {
+        const id = document.getElementById('editRoomOccupancyId').value;
+        const staffId = document.getElementById('editStaffId').value;
+        const roomId = document.getElementById('editRoomId').value;
+        const startDate = document.getElementById('editStartDate').value;
+        const endDate = document.getElementById('editEndDate').value;
+
+        if (!staffId || !roomId || !startDate || !endDate) {
+        alert('Все поля должны быть заполнены!');
+        return;
+    }
+
+    // Проверка на правильность формата даты начала
+    const startDateObj = new Date(startDate);
+    if (isNaN(startDateObj.getTime())) {
+        alert('Неверный формат даты начала!');
+        return;
+    }
+
+    // Проверка на правильность формата даты окончания
+    const endDateObj = new Date(endDate);
+    if (isNaN(endDateObj.getTime())) {
+        alert('Неверный формат даты окончания!');
+        return;
+    }
+
+    // Проверка, что дата окончания позже даты начала
+    if (endDateObj <= startDateObj) {
+        alert('Дата окончания должна быть позже даты начала!');
+        return;
+    }
+
+        try {
+            const response = await fetch(`/room_occupancy/edit/${id}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ id, staff_id: staffId, room_id: roomId, start_date: startDate, end_date: endDate })
+            });
+            const result = await response.json();
+            
+                alert('Данные обновлены успешно');
+                loadRoomOccupancy();
+                closeEditModal();
+            
+        } catch (error) {
+            console.error('Ошибка при обновлении данных:', error);
+            alert('Ошибка при обновлении данных');
+        }
+    }
+
+    // Функция для удаления записи
+    async function deleteRoomOccupancy(id) {
+        const confirmation = confirm('Вы уверены, что хотите удалить эту запись?');
+        if (!confirmation) return;
+
+        try {
+            const response = await fetch(`/room_occupancy/remove/${id}`, {
+                method: 'DELETE'
+            });
+            const result = await response.json();
+            
+                alert('Занятость удалена');
+                loadRoomOccupancy();
+            
+        } catch (error) {
+            console.error('Ошибка при удалении занятия:', error);
+            alert('Ошибка при удалении занятия');
+        }
+    }
+</script>
+{% endblock %}

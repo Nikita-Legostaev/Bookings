@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+</head>
+<body>
+    <button 
+    onclick="window.location.href='http://127.0.0.1:8000/pages/client'" 
+    style="padding: 5px 10px; background-color: blue; color: pink; border: 5px; cursor: pointer;">
+        Перейти к списку клиентов
+    </button>
+    <button 
+    onclick="window.location.href='http://127.0.0.1:8000/pages/rooms'" 
+    style="padding: 5px 10px; background-color: blue; color: pink; border: 5px; cursor: pointer;">
+    Перейти к списку комнат
+    </button>
+    <button 
+    onclick="window.location.href='http://127.0.0.1:8000/pages/staff'" 
+    style="padding: 5px 10px; background-color: blue; color: pink; border: 5px; cursor: pointer;">
+         Перейти к списку сотрудников
+    </button>
+    <button 
+    onclick="window.location.href='http://127.0.0.1:8000/pages/booking'" 
+    style="padding: 5px 10px; background-color: blue; color: pink; border: 5px; cursor: pointer;">
+         Перейти к списку бронирований
+    </button>
+    <button 
+    onclick="window.location.href='http://127.0.0.1:8000/pages/group_request'" 
+    style="padding: 5px 10px; background-color: blue; color: pink; border: 5px; cursor: pointer;">
+         Перейти к списку групповых заявок
+    </button>
+    <button 
+    onclick="window.location.href='http://127.0.0.1:8000/pages/room_occupancy'" 
+    style="padding: 5px 10px; background-color: blue; color: pink; border: 5px; cursor: pointer;">
+         Перейти к списку занятности номеров
+    </button>
+    <button 
+    onclick="window.location.href='http://127.0.0.1:8000/pages/count'" 
+    style="padding: 5px 10px; background-color: blue; color: pink; border: 5px; cursor: pointer;">
+         Перейти к количеству
+    </button>
+    {% block content %}{% endblock %}
+   
+</body>
+</html>

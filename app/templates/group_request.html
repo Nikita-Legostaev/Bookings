@@ -1,0 +1,268 @@
+{% extends "base.html" %}
+{% block content %}
+<div style="margin: 15px;">
+    <h2>Список запросов на группы</h2>
+    
+    <!-- Панель управления для выбора диапазона -->
+    <div style="margin-bottom: 10px;">
+        <label>Показать с:</label>
+        <input type="number" id="offset" value="0" min="0" style="width: 80px; margin-right: 10px;">
+        <label>Количество на странице:</label>
+        <input type="number" id="limit" value="10" min="1" style="width: 80px; margin-right: 15px;">
+        <button onclick="loadGroupRequests()" 
+                style="padding: 5px 15px; background-color: blue; color: pink; border: none; cursor: pointer; border-radius: 10px;">
+            Применить
+        </button>
+    </div>
+
+    <!-- Кнопка для добавления нового запроса -->
+    <button 
+        onclick="openAddModal()" 
+        style="margin-bottom: 15px; padding: 10px 15px; background-color: blue; color: pink; border: none; cursor: pointer;border-radius: 10px;">
+        Добавить запрос
+    </button>
+
+    <!-- Таблица запросов -->
+    <table id="groupRequestsTable" style="width: 100%; border-collapse: collapse; text-align: left; font-family: Arial, sans-serif;">
+        <thead>
+            <tr style="background-color: #f4f4f4; border-bottom: 2px solid #ddd;">
+                <th style="padding: 10px; border: 1px solid #ddd;">Клиент ID</th>
+                <th style="padding: 10px; border: 1px solid #ddd;">Дата запроса</th>
+                <th style="padding: 10px; border: 1px solid #ddd;">Число людей</th>
+                <th style="padding: 10px; border: 1px solid #ddd;">Статус</th>
+                <th style="padding: 10px; border: 1px solid #ddd; text-align: center;">Действия</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Здесь будет отображаться список запросов -->
+        </tbody>
+    </table>
+
+    <!-- Модальное окно для добавления запроса -->
+    <div id="addModal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: pink; padding: 15px; border: 1px solid #ddd; box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);">
+        <h3>Добавить новый запрос</h3>
+        <form id="addForm">
+            <label>Клиент ID:</label>
+            <input type="number" id="addClientId" style="width: 100%; margin-bottom: 10px;">
+            <label>Дата запроса:</label>
+            <input type="date" id="addRequestDate" style="width: 100%; margin-bottom: 10px;">
+            <label>Число людей:</label>
+            <input type="number" id="addNumberOfPeople" style="width: 100%; margin-bottom: 10px;">
+            <label>Статус:</label>
+            <input type="text" id="addRequestStatus" style="width: 100%; margin-bottom: 15px;">
+            <button type="button" onclick="addGroupRequest()" style="padding: 10px 15px; background-color: blue; color: pink; border: none; cursor: pointer;">Сохранить</button>
+            <button type="button" onclick="closeAddModal()" style="padding: 10px 15px; margin-left: 10px; background-color: #f44336; color: pink; border: none; cursor: pointer;">Отмена</button>
+        </form>
+    </div>
+
+    <!-- Модальное окно для редактирования запроса -->
+    <div id="editModal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: pink; padding: 15px; border: 1px solid #ddd; box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);">
+        <h3>Изменить запрос</h3>
+        <form id="editForm">
+            <input type="hidden" id="editGroupRequestId">
+            <label>Клиент ID:</label>
+            <input type="number" id="editClientId" style="width: 100%; margin-bottom: 10px;">
+            <label>Дата запроса:</label>
+            <input type="date" id="editRequestDate" style="width: 100%; margin-bottom: 10px;">
+            <label>Число людей:</label>
+            <input type="number" id="editNumberOfPeople" style="width: 100%; margin-bottom: 10px;">
+            <label>Статус:</label>
+            <input type="text" id="editRequestStatus" style="width: 100%; margin-bottom: 15px;">
+            <button type="button" onclick="updateGroupRequest()" style="padding: 10px 15px; background-color: blue; color: pink; border: none; cursor: pointer;">Сохранить</button>
+            <button type="button" onclick="closeEditModal()" style="padding: 10px 15px; margin-left: 10px; background-color: #f44336; color: pink; border: none; cursor: pointer;">Отмена</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Функция для загрузки запросов с учетом offset и limit
+    async function loadGroupRequests() {
+        const offset = document.getElementById('offset').value;
+        const limit = document.getElementById('limit').value;
+
+        try {
+            const response = await fetch(`/groupRequests/all?offset=${offset}&limit=${limit}`);
+            const groupRequests = await response.json();
+            const tableBody = document.querySelector('#groupRequestsTable tbody');
+            tableBody.innerHTML = ''; // Очистить текущую таблицу
+
+            if (groupRequests.length > 0) {
+                groupRequests.forEach(request => {
+                    const row = document.createElement('tr');
+                    row.id = `groupRequest-row-${request.id}`;
+                    row.innerHTML = `
+                        <td style="padding: 10px; border: 1px solid #ddd;">${request.client_id}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd;">${request.request_data}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd;">${request.number_of_people}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd;">${request.request_status}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">
+                            <button 
+                                style="margin-right: 5px; padding: 5px 10px; background-color: blue; color: pink; border: none; cursor: pointer; border-radius: 10px;"
+                                onclick="openEditModal('${request.id}', '${request.client_id}', '${request.request_data}', '${request.number_of_people}', '${request.request_status}')">
+                                Изменить
+                            </button>
+                            <button 
+                                style="padding: 5px 10px; background-color: #f44336; color: pink; border: none; cursor: pointer;border-radius: 10px;" 
+                                onclick="deleteGroupRequest('${request.id}')">
+                                Удалить
+                            </button>
+                        </td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            } else {
+                const row = document.createElement('tr');
+                row.innerHTML = `<td colspan="5" style="padding: 10px; text-align: center; color: #666;">Нет данных для отображения</td>`;
+                tableBody.appendChild(row);
+            }
+        } catch (error) {
+            console.error('Ошибка загрузки запросов:', error);
+            alert('Ошибка при загрузке данных');
+        }
+    }
+
+    // Вызов загрузки запросов при старте страницы
+    window.onload = loadGroupRequests;
+
+    // Функции для добавления запроса
+    function openAddModal() {
+        document.getElementById('addModal').style.display = 'block';
+    }
+
+    function closeAddModal() {
+        document.getElementById('addModal').style.display = 'none';
+    }
+
+    async function addGroupRequest() {
+        const clientId = document.getElementById('addClientId').value;
+        const requestDate = document.getElementById('addRequestDate').value;
+        const numberOfPeople = document.getElementById('addNumberOfPeople').value;
+        const requestStatus = document.getElementById('addRequestStatus').value;
+
+        if (!clientId || !requestDate || !numberOfPeople || !requestStatus) {
+        alert('Все поля должны быть заполнены!');
+        return;
+    }
+
+    // Проверка на корректность формата количества людей
+    if (!/^\d+$/.test(numberOfPeople) || parseInt(numberOfPeople) <= 0) {
+        alert('Количество людей должно быть положительным целым числом!');
+        return;
+    }
+
+    // Проверка на правильность формата даты запроса
+    const requestDateObj = new Date(requestDate);
+    if (isNaN(requestDateObj.getTime())) {
+        alert('Неверный формат даты запроса!');
+        return;
+    }
+
+        try {
+            const response = await fetch('/groupRequests/add_groupRequests', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    client_id: clientId,
+                    request_data: requestDate,
+                    number_of_people: numberOfPeople,
+                    request_status: requestStatus
+                })
+            });
+
+            const result = await response.json();
+        
+                closeAddModal();
+                loadGroupRequests();  // Перезагрузить список запросов
+            
+        } catch (error) {
+            console.error('Ошибка добавления запроса:', error);
+            alert('Ошибка при добавлении запроса');
+        }
+    }
+
+    // Функции для редактирования запроса
+    function openEditModal(id, clientId, requestDate, numberOfPeople, requestStatus) {
+        document.getElementById('editGroupRequestId').value = id;
+        document.getElementById('editClientId').value = clientId;
+        document.getElementById('editRequestDate').value = requestDate;
+        document.getElementById('editNumberOfPeople').value = numberOfPeople;
+        document.getElementById('editRequestStatus').value = requestStatus;
+        document.getElementById('editModal').style.display = 'block';
+    }
+
+    function closeEditModal() {
+        document.getElementById('editModal').style.display = 'none';
+    }
+
+    async function updateGroupRequest() {
+        const id = document.getElementById('editGroupRequestId').value;
+        const clientId = document.getElementById('editClientId').value;
+        const requestDate = document.getElementById('editRequestDate').value;
+        const numberOfPeople = document.getElementById('editNumberOfPeople').value;
+        const requestStatus = document.getElementById('editRequestStatus').value;
+
+        if (!clientId || !requestDate || !numberOfPeople || !requestStatus) {
+        alert('Все поля должны быть заполнены!');
+        return;
+    }
+
+    // Проверка на корректность формата количества людей
+    if (!/^\d+$/.test(numberOfPeople) || parseInt(numberOfPeople) <= 0) {
+        alert('Количество людей должно быть положительным целым числом!');
+        return;
+    }
+
+    // Проверка на правильность формата даты запроса
+    const requestDateObj = new Date(requestDate);
+    if (isNaN(requestDateObj.getTime())) {
+        alert('Неверный формат даты запроса!');
+        return;
+    }
+
+        try {
+            const response = await fetch(`/groupRequests/edit/${id}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    client_id: clientId,
+                    request_data: requestDate,
+                    number_of_people: numberOfPeople,
+                    request_status: requestStatus
+                })
+            });
+
+            const result = await response.json();
+           
+                closeEditModal();
+                loadGroupRequests();  // Перезагрузить список запросов
+            
+        } catch (error) {
+            console.error('Ошибка редактирования запроса:', error);
+            alert('Ошибка при редактировании запроса');
+        }
+    }
+
+    // Функция для удаления запроса
+    async function deleteGroupRequest(id) {
+        try {
+            const response = await fetch(`/groupRequests/remove/${id}`, {
+                method: 'DELETE',
+            });
+
+            const result = await response.json();
+            
+                const row = document.getElementById(`groupRequest-row-${id}`);
+                row.remove();  // Удалить строку из таблицы
+            
+        } catch (error) {
+            console.error('Ошибка удаления запроса:', error);
+            alert('Ошибка при удалении запроса');
+        }
+    }
+</script>
+
+{% endblock %}

@@ -1,0 +1,270 @@
+{% extends "base.html" %}
+{% block content %}
+<div style="margin: 15px;">
+    <h2>Список комнат</h2>
+    
+    <!-- Панель управления для выбора диапазона -->
+    <div style="margin-bottom: 15px;">
+        <label>Показать с:</label>
+        <input type="number" id="offset" value="0" min="0" style="width: 80px; margin-right: 10px;">
+        <label>Количество на странице:</label>
+        <input type="number" id="limit" value="10" min="1" style="width: 80px; margin-right: 15px;">
+        <button onclick="loadRooms()" 
+                style="padding: 5px 15px; background-color: blue; color: pink; border: none; cursor: pointer; border-radius: 10px;">
+            Применить
+        </button>
+    </div>
+
+    <!-- Кнопка для добавления новой комнаты -->
+    <button 
+        onclick="openAddModal()" 
+        style="margin-bottom: 15px; padding: 10px 15px; background-color: blue; color: pink; border: none; cursor: pointer; border-radius: 10px;">
+        Добавить комнату
+    </button>
+
+    <!-- Таблица комнат -->
+    <table id="roomsTable" style="width: 100%; border-collapse: collapse; text-align: left; font-family: Arial, sans-serif;">
+        <thead>
+            <tr style="background-color: #f4f4f4; border-bottom: 2px solid #ddd;">
+                <th style="padding: 10px; border: 1px solid #ddd;">Тип</th>
+                <th style="padding: 10px; border: 1px solid #ddd;">Статус</th>
+                <th style="padding: 10px; border: 1px solid #ddd;">Цена за ночь</th>
+                <th style="padding: 10px; border: 1px solid #ddd;">Действия</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Здесь будет отображаться список комнат -->
+        </tbody>
+    </table>
+
+    <!-- Модальное окно для добавления комнаты -->
+    <div id="addModal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: pink; padding: 15px; border: 1px solid #ddd; box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);">
+        <h3>Добавить новую комнату</h3>
+        <form id="addForm">
+            <label>Тип:</label>
+            <select id="addRootType" style="width: 100%; margin-bottom: 10px;">
+                <option value="" disabled selected>Выберите тип</option>
+                <option value="Одноместная">Одноместная</option>
+                <option value="Двухместная">Двухместная</option>
+                <option value="Люкс">Люкс</option>
+                <!-- Добавьте другие типы по необходимости -->
+            </select>
+            <label>Статус:</label>
+            <input type="text" id="addStatus" style="width: 100%; margin-bottom: 10px;">
+            <label>Цена за ночь:</label>
+            <input type="number" id="addPriceForNight" style="width: 100%; margin-bottom: 10px;">
+            <button type="button" onclick="addRoom()" style="padding: 10px 15px; background-color: blue; color: pink; border: none; cursor: pointer;">Сохранить</button>
+            <button type="button" onclick="closeAddModal()" style="padding: 10px 15px; margin-left: 10px; background-color: #f44336; color: pink; border: none; cursor: pointer;">Отмена</button>
+        </form>
+    </div>
+
+    <!-- Модальное окно для редактирования данных комнаты -->
+    <div id="editModal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: pink; padding: 15px; border: 1px solid #ddd; box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);">
+        <h3>Изменить данные комнаты</h3>
+        <form id="editForm">
+            <input type="hidden" id="editRoomId">
+            <label>Тип:</label>
+            <select id="editRootType" style="width: 100%; margin-bottom: 10px;">
+                <option value="" disabled selected>Выберите тип</option>
+                <option value="Одноместная">Одноместная</option>
+                <option value="Двухместная">Двухместная</option>
+                <option value="Люкс">Люкс</option>
+                <!-- Добавьте другие типы по необходимости -->
+            </select>
+            <label>Статус:</label>
+            <input type="text" id="editStatus" style="width: 100%; margin-bottom: 10px;">
+            <label>Цена за ночь:</label>
+            <input type="number" id="editPriceForNight" style="width: 100%; margin-bottom: 10px;">
+            <button type="button" onclick="updateRoom()" style="padding: 10px 15px; background-color: blue; color: pink; border: none; cursor: pointer;">Сохранить</button>
+            <button type="button" onclick="closeEditModal()" style="padding: 10px 15px; margin-left: 10px; background-color: #f44336; color: pink; border: none; cursor: pointer;">Отмена</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Функция для загрузки комнат с учетом offset и limit
+    async function loadRooms() {
+        const offset = document.getElementById('offset').value;
+        const limit = document.getElementById('limit').value;
+        
+        try {
+            const response = await fetch(`/rooms/all?offset=${offset}&limit=${limit}`);
+            const rooms = await response.json();
+            const tableBody = document.querySelector('#roomsTable tbody');
+            tableBody.innerHTML = ''; // Очистить текущую таблицу
+
+            if (rooms.length > 0) {
+                rooms.forEach(room => {
+                    const row = document.createElement('tr');
+                    row.id = `room-row-${room.id}`;
+                    row.innerHTML = `
+                        <td style="padding: 10px; border: 1px solid #ddd;">${room.root_type}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd;">${room.status}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd;">${room.price_for_night}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">
+                            <button 
+                                style="margin-right: 5px; padding: 5px 10px; background-color: blue; color: pink; border: none; cursor: pointer;border-radius: 10px;"
+                                onclick="openEditModal('${room.id}', '${room.root_type}', '${room.status}', '${room.price_for_night}')">
+                                Изменить
+                            </button>
+                            <button 
+                                style="padding: 5px 10px; background-color: #f44336; color: pink; border: none; cursor: pointer;border-radius: 10px;" 
+                                onclick="deleteRoom('${room.id}')">
+                                Удалить
+                            </button>
+                        </td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            } else {
+                const row = document.createElement('tr');
+                row.innerHTML = `<td colspan="4" style="padding: 10px; text-align: center; color: #666;">Нет данных для отображения</td>`;
+                tableBody.appendChild(row);
+            }
+        } catch (error) {
+            console.error('Ошибка загрузки комнат:', error);
+            alert('Ошибка при загрузке данных');
+        }
+    }
+
+    // Вызов загрузки комнат при старте страницы
+    window.onload = loadRooms;
+
+    // Функции для добавления комнаты
+    function openAddModal() {
+        document.getElementById('addModal').style.display = 'block';
+    }
+
+    function closeAddModal() {
+        document.getElementById('addModal').style.display = 'none';
+    }
+
+    async function addRoom() {
+        const rootType = document.getElementById('addRootType').value;
+        const status = document.getElementById('addStatus').value;
+        const priceForNight = document.getElementById('addPriceForNight').value;
+
+        // Валидация на пустые поля
+        if (!rootType || !status || !priceForNight) {
+        alert('Все поля должны быть заполнены!');
+        return;
+    }
+
+    // Проверка, что цена за ночь является положительным числом
+    if (isNaN(priceForNight) || priceForNight <= 0) {
+        alert('Цена за ночь должна быть положительным числом!');
+        return;
+    }
+
+    // Проверка, что статус является допустимым
+    const validStatuses = ['available', 'occupied', 'maintenance']; // Пример допустимых статусов
+    if (!validStatuses.includes(status.toLowerCase())) {
+        alert('Неверный статус комнаты! Допустимые статусы: available, occupied, maintenance.');
+        return;
+    }
+
+        const data = { root_type: rootType, status, price_for_night: priceForNight };
+
+        try {
+            const response = await fetch('/rooms/add_rooms', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data),
+            });
+
+            if (response.ok) {
+                alert('Комната успешно добавлена');
+                loadRooms(); // Перезагружаем список комнат
+                closeAddModal(); // Закрываем окно
+            } else {
+                alert('Ошибка при добавлении комнаты');
+            }
+        } catch (error) {
+            console.error('Ошибка добавления комнаты:', error);
+            alert('Ошибка при добавлении комнаты');
+        }
+    }
+
+    // Функции для редактирования комнаты
+    function openEditModal(id, rootType, status, priceForNight) {
+        document.getElementById('editRoomId').value = id;
+        document.getElementById('editRootType').value = rootType;
+        document.getElementById('editStatus').value = status;
+        document.getElementById('editPriceForNight').value = priceForNight;
+        document.getElementById('editModal').style.display = 'block';
+    }
+
+    function closeEditModal() {
+        document.getElementById('editModal').style.display = 'none';
+    }
+
+    async function updateRoom() {
+        const id = document.getElementById('editRoomId').value;
+        const rootType = document.getElementById('editRootType').value;
+        const status = document.getElementById('editStatus').value;
+        const priceForNight = document.getElementById('editPriceForNight').value;
+
+        // Валидация на пустые поля
+        if (!rootType || !status || !priceForNight) {
+        alert('Все поля должны быть заполнены!');
+        return;
+    }
+
+    // Проверка, что цена за ночь является положительным числом
+    if (isNaN(priceForNight) || priceForNight <= 0) {
+        alert('Цена за ночь должна быть положительным числом!');
+        return;
+    }
+
+    // Проверка, что статус является допустимым
+    const validStatuses = ['available', 'occupied', 'maintenance']; // Пример допустимых статусов
+    if (!validStatuses.includes(status.toLowerCase())) {
+        alert('Неверный статус комнаты! Допустимые статусы: available, occupied, maintenance.');
+        return;
+    }
+
+        const data = { root_type: rootType, status, price_for_night: priceForNight };
+
+        try {
+            const response = await fetch(`/rooms/edit/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data),
+            });
+
+            if (response.ok) {
+                alert('Данные комнаты обновлены');
+                loadRooms(); // Перезагружаем список комнат
+                closeEditModal(); // Закрываем окно
+            } else {
+                alert('Ошибка при обновлении комнаты');
+            }
+        } catch (error) {
+            console.error('Ошибка обновления комнаты:', error);
+            alert('Ошибка при обновлении комнаты');
+        }
+    }
+
+    // Функция для удаления комнаты
+    async function deleteRoom(id) {
+        if (confirm('Вы уверены, что хотите удалить эту комнату?')) {
+            try {
+                const response = await fetch(`/rooms/remove/${id}`, {
+                    method: 'DELETE',
+                });
+
+                if (response.ok) {
+                    alert('Комната успешно удалена');
+                    loadRooms(); // Перезагружаем список комнат
+                } else {
+                    alert('Ошибка при удалении комнаты');
+                }
+            } catch (error) {
+                console.error('Ошибка удаления комнаты:', error);
+                alert('Ошибка при удалении комнаты');
+            }
+        }
+    }
+</script>
+{% endblock %}
+

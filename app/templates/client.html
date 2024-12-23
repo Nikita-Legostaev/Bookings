@@ -1,0 +1,385 @@
+{% extends "base.html" %}
+{% block content %}
+<div style="margin: 15px;">
+    <h2>Список клиентов</h2>
+    
+    <!-- Панель управления для выбора диапазона -->
+    <div style="margin-bottom: 10px;">
+        <input type="number" id="offset" value="0" min="0" style="width: 80px; margin-right: 10px;">
+        <input type="number" id="limit" value="10" min="1" style="width: 80px; margin-right: 15px;">
+        <button onclick="loadClients()" 
+                style="padding: 5px 15px; background-color: blue; color: pink; border: none; cursor: pointer; border-radius: 10px;">
+            Применить
+        </button>
+    </div>
+    <div style="margin-bottom: 20px;"></div>
+        <h3>Поиск клиентов</h3>
+        <input type="text" id="full_name" placeholder="ФИО" style="margin-right: 10px;">
+        <input type="text" id="contact" placeholder="Контакт" style="margin-right: 10px;">
+        <input type="text" id="passport_number" placeholder="Номер паспорта" style="margin-right: 10px;">
+        <input type="date" id="registry_date" style="margin-right: 10px;">
+        <button onclick="searchClients()" 
+                style="padding: 5px 15px; background-color: green; color: white; border: none; cursor: pointer; border-radius: 10px;">
+            Найти
+        </button>
+    </div>
+
+    <!-- Кнопка для добавления нового клиента -->
+    <button 
+        onclick="openAddModal()" 
+        style="margin-bottom: 15px; padding: 10px 15px; background-color: blue; color: pink; border: none; cursor: pointer;border-radius: 10px;">
+        Добавить клиента
+    </button>
+
+    <!-- Таблица клиентов -->
+    <table id="clientsTable" style="width: 100%; border-collapse: collapse; text-align: left; font-family: Arial, sans-serif;">
+        <thead>
+            <tr style="background-color: #f4f4f4; border-bottom: 2px solid #ddd;">
+                <th style="padding: 10px; border: 1px solid #ddd;">ФИО</th>
+                <th style="padding: 10px; border: 1px solid #ddd;">Контакт</th>
+                <th style="padding: 10px; border: 1px solid #ddd;">Номер паспорта</th>
+                <th style="padding: 10px; border: 1px solid #ddd;">Дата регистрации</th>
+                <th style="padding: 10px; border: 1px solid #ddd; text-align: center;">Действия</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Здесь будет отображаться список клиентов -->
+        </tbody>
+    </table>
+
+    <div id="pagination" style="margin-top: 20px; text-align: center;">
+        <button id="prevPageBtn" onclick="changePage('prev')" 
+                style="padding: 5px 15px; background-color: #007bff; color: white; border: none; cursor: pointer; border-radius: 10px;">
+            Предыдущая
+        </button>
+        <span id="pageInfo" style="margin: 0 15px; font-size: 16px; font-weight: bold;">Страница 1</span>
+        <button id="nextPageBtn" onclick="changePage('next')" 
+                style="padding: 5px 15px; background-color: #007bff; color: white; border: none; cursor: pointer; border-radius: 10px;">
+            Следующая
+        </button>
+    </div>
+
+
+    <!-- Модальное окно для добавления клиента -->
+    <div id="addModal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: pink; padding: 15px; border: 1px solid #ddd; box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);">
+        <h3>Добавить нового клиента</h3>
+        <form id="addForm">
+            <label>ФИО:</label>
+            <input type="text" id="addFullName" style="width: 100%; margin-bottom: 10px;">
+            <label>Контакт:</label>
+            <input type="text" id="addContact" style="width: 100%; margin-bottom: 10px;">
+            <label>Номер паспорта:</label>
+            <input type="text" id="addPassportNumber" style="width: 100%; margin-bottom: 10px;">
+            <label>Дата регистрации:</label>
+            <input type="date" id="addRegistryDate" style="width: 100%; margin-bottom: 15px;">
+            <button type="button" onclick="addClient()" style="padding: 10px 15px; background-color: blue; color: pink; border: none; cursor: pointer;">Сохранить</button>
+            <button type="button" onclick="closeAddModal()" style="padding: 10px 15px; margin-left: 10px; background-color: #f44336; color: pink; border: none; cursor: pointer;">Отмена</button>
+        </form>
+    </div>
+
+    <!-- Модальное окно для редактирования данных клиента -->
+    <div id="editModal" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: pink; padding: 15px; border: 1px solid #ddd; box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);">
+        <h3>Изменить данные клиента</h3>
+        <form id="editForm">
+            <input type="hidden" id="editClientId">
+            <label>ФИО:</label>
+            <input type="text" id="editFullName" style="width: 100%; margin-bottom: 10px;">
+            <label>Контакт:</label>
+            <input type="text" id="editContact" style="width: 100%; margin-bottom: 10px;">
+            <label>Номер паспорта:</label>
+            <input type="text" id="editPassportNumber" style="width: 100%; margin-bottom: 10px;">
+            <label>Дата регистрации:</label>
+            <input type="date" id="editRegistryDate" style="width: 100%; margin-bottom: 15px;">
+            <button type="button" onclick="updateClient()" style="padding: 10px 15px; background-color: blue; color: pink; border: none; cursor: pointer;border-radius: 10px;">Сохранить</button>
+            <button type="button" onclick="closeEditModal()" style="padding: 10px 15px; margin-left: 10px; background-color: #f44336; color: pink; border: none; cursor: pointer;border-radius: 10px;">Отмена</button>
+        </form>
+    </div>
+</div>
+
+<script>
+
+let currentPage = 1;
+    let limit = 10;
+    let offset = 0;
+
+    async function loadClients() {
+        const tableBody = document.querySelector('#clientsTable tbody');
+        tableBody.innerHTML = ''; // Очистить таблицу
+
+        try {
+            const response = await fetch(`/client/all?offset=${offset}&limit=${limit}`);
+            const clients = await response.json();
+
+            if (clients.length > 0) {
+                clients.forEach(client => {
+                    const row = document.createElement('tr');
+                    row.id = `client-row-${client.id}`;
+                    row.innerHTML = `
+                        <td style="padding: 10px; border: 1px solid #ddd;">${client.full_name}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd;">${client.contact}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd;">${client.passport_number}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd;">${client.registry_date}</td>
+                        <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">
+                            <button 
+                                style="margin-right: 5px; padding: 5px 10px; background-color: blue; color: pink; border: none; cursor: pointer; border-radius: 10px;"
+                                onclick="openEditModal('${client.id}', '${client.full_name}', '${client.contact}', '${client.passport_number}', '${client.registry_date}')">
+                                Изменить
+                            </button>
+                            <button 
+                                style="padding: 5px 10px; background-color: red; color: pink; border: none; cursor: pointer; border-radius: 10px;"
+                                onclick="deleteClient('${client.id}')">
+                                Удалить
+                            </button>
+                        </td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            } else {
+                const row = document.createElement('tr');
+                row.innerHTML = `<td colspan="5" style="padding: 10px; text-align: center; color: #666;">Нет данных для отображения</td>`;
+                tableBody.appendChild(row);
+            }
+
+            updatePagination();
+        } catch (error) {
+            console.error('Ошибка загрузки клиентов:', error);
+            alert('Ошибка при загрузке данных');
+        }
+    }
+
+    // Вызов загрузки клиентов при старте страницы
+    window.onload = loadClients;
+
+    // Функции для добавления клиента
+    function openAddModal() {
+        document.getElementById('addModal').style.display = 'block';
+    }
+
+    function closeAddModal() {
+        document.getElementById('addModal').style.display = 'none';
+    }
+
+    async function addClient() {
+        const fullName = document.getElementById('addFullName').value.trim();
+        const contact = document.getElementById('addContact').value.trim();
+        const passportNumber = document.getElementById('addPassportNumber').value.trim();
+        const registryDate = document.getElementById('addRegistryDate').value;
+
+        if (!fullName || !contact || !passportNumber || !registryDate) {
+        alert('Все поля должны быть заполнены!');
+        return;
+    }
+
+    // Проверка на правильность формата номера телефона (предположим, что это только цифры)
+    const phoneRegex = /^[0-9]+$/; // Пример для телефонов, состоящих только из цифр
+    if (!phoneRegex.test(contact)) {
+        alert('Неверный формат номера телефона! Номер должен содержать только цифры.');
+        return;
+    }
+
+    // Проверка на правильность формата номера паспорта
+    const passportRegex = /^[A-Z0-9]+$/; // Пример для номера паспорта (буквы и цифры)
+    if (!passportRegex.test(passportNumber)) {
+        alert('Неверный формат номера паспорта! Он должен содержать только буквы и цифры.');
+        return;
+    }
+
+    // Проверка на корректность даты регистрации
+    const registryDateObj = new Date(registryDate);
+    if (isNaN(registryDateObj.getTime())) {
+        alert('Неверный формат даты регистрации!');
+        return;
+    }
+
+        const data = { full_name: fullName, contact, passport_number: passportNumber, registry_date: registryDate };
+
+        try {
+            const response = await fetch('/client/add_client', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data),
+            });
+
+            if (response.ok) {
+                alert('Клиент успешно добавлен');
+                loadClients(); // Перезагружаем список клиентов
+                closeAddModal(); // Закрываем окно
+            } else {
+                alert('Ошибка при добавлении клиента');
+            }
+        } catch (error) {
+            console.error('Ошибка добавления клиента:', error);
+            alert('Ошибка при добавлении клиента');
+        }
+    }
+async function searchClients() {
+    const fullName = document.getElementById('full_name').value;
+    const contact = document.getElementById('contact').value;
+    const passportNumber = document.getElementById('passport_number').value;
+    const registryDate = document.getElementById('registry_date').value;
+    const offset = document.getElementById('offset').value;
+    const limit = document.getElementById('limit').value;
+
+    // Создаем объект с параметрами запроса, исключая пустые значения
+    const params = new URLSearchParams();
+    if (fullName) params.append('full_name', fullName);
+    if (contact) params.append('contact', contact);
+    if (passportNumber) params.append('passport_number', passportNumber);
+    if (registryDate) params.append('registry_date', registryDate);
+    params.append('offset', offset);
+    params.append('limit', limit);
+
+    try {
+        // Отправляем запрос с параметрами
+        const response = await fetch(`/client/search/?${params.toString()}`);
+        const clients = await response.json();
+        const tableBody = document.querySelector('#clientsTable tbody');
+        tableBody.innerHTML = ''; // Очистить текущую таблицу
+
+        if (clients.length > 0) {
+            clients.forEach(client => {
+                const row = document.createElement('tr');
+                row.id = `client-row-${client.id}`;
+                row.innerHTML = `
+                    <td style="padding: 10px; border: 1px solid #ddd;">${client.full_name}</td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">${client.contact}</td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">${client.passport_number}</td>
+                    <td style="padding: 10px; border: 1px solid #ddd;">${client.registry_date}</td>
+                    <td style="padding: 10px; border: 1px solid #ddd; text-align: center;">
+                        <button 
+                            style="padding: 8px 16px; background-color: #007bff; color: white; font-size: 14px; border-radius: 8px; border: none; cursor: pointer; margin-right: 10px;" 
+                            onclick="openEditModal('${client.id}', '${client.full_name}', '${client.contact}', '${client.passport_number}', '${client.registry_date}')">
+                            Изменить
+                        </button>
+                        <button 
+                            style="padding: 5px 10px; background-color: #f44336; color: white; border: none; cursor: pointer;" 
+                            onclick="deleteClient('${client.id}')">
+                            Удалить
+                        </button>
+                    </td>
+                `;
+                tableBody.appendChild(row);
+            });
+        } else {
+            const row = document.createElement('tr');
+            row.innerHTML = `<td colspan="5" style="padding: 10px; text-align: center; color: #666;">Нет данных для отображения</td>`;
+            tableBody.appendChild(row);
+        }
+    } catch (error) {
+        console.error('Ошибка поиска клиентов:', error);
+        alert('Ошибка при поиске клиентов');
+    }
+}
+
+
+    // Функции для редактирования клиента
+    function openEditModal(id, fullName, contact, passportNumber, registryDate) {
+        document.getElementById('editClientId').value = id;
+        document.getElementById('editFullName').value = fullName;
+        document.getElementById('editContact').value = contact;
+        document.getElementById('editPassportNumber').value = passportNumber;
+        document.getElementById('editRegistryDate').value = registryDate;
+        document.getElementById('editModal').style.display = 'block';
+    }
+
+    function closeEditModal() {
+        document.getElementById('editModal').style.display = 'none';
+    }
+
+    async function updateClient() {
+        const id = document.getElementById('editClientId').value;
+        const fullName = document.getElementById('editFullName').value.trim();
+        const contact = document.getElementById('editContact').value.trim();
+        const passportNumber = document.getElementById('editPassportNumber').value.trim();
+        const registryDate = document.getElementById('editRegistryDate').value;
+
+        if (!fullName || !contact || !passportNumber || !registryDate) {
+        alert('Все поля должны быть заполнены!');
+        return;
+    }
+
+    // Проверка на правильность формата номера телефона (предположим, что это только цифры)
+    const phoneRegex = /^[0-9]+$/; // Пример для телефонов, состоящих только из цифр
+    if (!phoneRegex.test(contact)) {
+        alert('Неверный формат номера телефона! Номер должен содержать только цифры.');
+        return;
+    }
+
+    // Проверка на правильность формата номера паспорта
+    const passportRegex = /^[A-Z0-9]+$/; // Пример для номера паспорта (буквы и цифры)
+    if (!passportRegex.test(passportNumber)) {
+        alert('Неверный формат номера паспорта! Он должен содержать только буквы и цифры.');
+        return;
+    }
+
+    // Проверка на корректность даты регистрации
+    const registryDateObj = new Date(registryDate);
+    if (isNaN(registryDateObj.getTime())) {
+        alert('Неверный формат даты регистрации!');
+        return;
+    }
+
+        const data = { full_name: fullName, contact, passport_number: passportNumber, registry_date: registryDate };
+
+        try {
+            const response = await fetch(`/client/edit/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data),
+            });
+
+            if (response.ok) {
+                alert('Данные клиента обновлены');
+                loadClients(); // Перезагружаем список клиентов
+                closeEditModal(); // Закрываем окно
+            } else {
+                alert('Ошибка при обновлении клиента');
+            }
+        } catch (error) {
+            console.error('Ошибка обновления клиента:', error);
+            alert('Ошибка при обновлении клиента');
+        }
+    }
+
+    // Функция для удаления клиента
+    async function deleteClient(id) {
+        if (confirm('Вы уверены, что хотите удалить этого клиента?')) {
+            try {
+                const response = await fetch(`/client/remove/${id}`, {
+                    method: 'DELETE',
+                });
+
+                if (response.ok) {
+                    alert('Клиент успешно удалён');
+                    loadClients(); // Перезагружаем список клиентов
+                } else {
+                    alert('Ошибка при удалении клиента');
+                }
+            } catch (error) {
+                console.error('Ошибка удаления клиента:', error);
+                alert('Ошибка при удалении клиента');
+            }
+        }
+    }
+
+    function updatePagination() {
+        document.getElementById('pageInfo').innerText = `Страница ${currentPage}`;
+        document.getElementById('prevPageBtn').disabled = currentPage === 1;
+        // Добавьте логику, чтобы отключить кнопку "Следующая", если данных больше нет
+        document.getElementById('nextPageBtn').disabled = false; // Пока не реализована проверка конца
+    }
+
+    function changePage(direction) {
+        if (direction === 'prev' && currentPage > 1) {
+            currentPage--;
+            limit -= 10;
+            offset -= 10;
+        } else if (direction === 'next') {
+            currentPage++;
+            limit += 10;
+            offset += 10;
+        }
+        loadClients(); // Загружаем продукты для новой страницы
+    }
+</script>
+{% endblock %}

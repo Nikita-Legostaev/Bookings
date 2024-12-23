@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- Контейнер для круговой диаграммы -->
+<h3>Распределение по категориям</h3>
+<canvas id="countsChart" width="400" height="400"></canvas>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    // Данные для диаграммы, переданные из Python
+    const countsData = {{ counts_data | tojson }};
+    
+    // Получаем метки (названия категорий) и значения
+    const labels = Object.keys(countsData); // Названия категорий
+    const data = Object.values(countsData);  // Количество для каждой категории
+
+    // Получаем контекст канваса для диаграммы
+    const ctx = document.getElementById('countsChart').getContext('2d');
+    
+    // Создание диаграммы
+    new Chart(ctx, {
+        type: 'pie',  // Тип диаграммы (круговая)
+        data: {
+            labels: labels,  // Метки (категории)
+            datasets: [{
+                label: 'Количество',
+                data: data,  // Данные (количество для каждой категории)
+                backgroundColor: ['#FF6384', '#36A2EB', '#FFCE56', '#4BC0C0', '#FF9F40', '#9966FF'],
+                borderColor: '#fff',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'top',
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(tooltipItem) {
+                            return tooltipItem.label + ': ' + tooltipItem.raw + ' раз';
+                        }
+                    }
+                }
+            }
+        }
+    });
+</script>
+
+{% endblock %}
